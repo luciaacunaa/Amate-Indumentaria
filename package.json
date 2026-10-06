@@ -1,15 +1,20 @@
 {
-  "name": "my-project",
+  "name": "amate-indumentaria",
   "version": "0.1.0",
   "private": true,
+  "main": "main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "postinstall": "electron-rebuild",
+    "app": "concurrently -k \"next dev\" \"wait-on http://localhost:3000 && electron .\"",
+    "test": "playwright test"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@vercel/analytics": "1.6.1",
+    "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",
@@ -22,12 +27,17 @@
     "tw-animate-css": "^1.4.0"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.2.0",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^10.0.5",
+    "electron": "^44.5.1",
     "postcss": "^8.5",
     "tailwindcss": "^4.3.3",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "wait-on": "^9.5.1"
   }
 }
