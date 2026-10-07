@@ -24,6 +24,35 @@ type EtiquetaDialogProps = {
   onImpreso: () => void
 }
 
+const CAMPOS_CLIENTE: [keyof Cliente, string][] = [
+  ["nombre", "Nombre"],
+  ["dni", "DNI"],
+  ["telefono", "Teléfono"],
+  ["calle", "Calle"],
+  ["numero", "Número"],
+  ["localidad", "Localidad"],
+  ["provincia", "Provincia"],
+  ["codigoPostal", "Código postal"],
+]
+
+const CAMPOS_REMITENTE: [keyof Remitente, string][] = [
+  ["nombre", "Nombre y apellido"],
+  ["dni", "DNI"],
+  ["cuit", "CUIT"],
+  ["direccion", "Dirección"],
+  ["codigoPostal", "Código postal"],
+  ["localidad", "Localidad"],
+  ["provincia", "Provincia"],
+]
+
+const CAMPOS_REMITENTE_CORREO: [keyof Remitente, string][] = [
+  ["telefono", "Teléfono"],
+  ["subCuenta", "Sub-cuenta"],
+  ["sucursal", "Sucursal / modalidad de entrega"],
+]
+
+const vacio = (valor: unknown) => !String(valor ?? "").trim()
+
 function hoyISO() {
   const d = new Date()
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10)
@@ -49,6 +78,7 @@ export function EtiquetaDialog({
   const [bultos, setBultos] = useState("1")
   const [expreso, setExpreso] = useState("")
   const [modalidad, setModalidad] = useState<ModalidadCorreo>(MODALIDADES_CORREO[1])
+  const [error, setError] = useState("")
 
   useEffect(() => {
     if (cliente) {
@@ -59,17 +89,46 @@ export function EtiquetaDialog({
       setBultos("1")
       setExpreso("")
       setModalidad(MODALIDADES_CORREO[1])
+      setError("")
     }
   }, [cliente, sugerenciaPedido])
 
   if (!cliente) return null
 
+  const c = cliente
+  const esViacargo = empresa === "Viacargo"
+
+  const datosFaltantes = () => {
+    const faltan: string[] = []
+
+    for (const [campo, label] of CAMPOS_CLIENTE) {
+      if (vacio(c[campo])) faltan.push(`${label} de la clienta`)
+    }
+
+    const camposRemitente = esViacargo
+      ? CAMPOS_REMITENTE
+      : [...CAMPOS_REMITENTE, ...CAMPOS_REMITENTE_CORREO]
+    for (const [campo, label] of camposRemitente) {
+      if (vacio(remitente[campo])) faltan.push(`${label} del remitente`)
+    }
+
+    if (vacio(nroPedido)) faltan.push("N° de pedido")
+    if (vacio(fecha)) faltan.push("Fecha de envío")
+    if (esViacargo && vacio(bultos)) faltan.push("Cantidad de bultos")
+
+    return faltan
+  }
+
   const imprimir = () => {
+    const faltan = datosFaltantes()
+    if (faltan.length > 0) {
+      setError(`No se puede generar la etiqueta. Falta completar: ${faltan.join(", ")}.`)
+      return
+    }
+    setError("")
     window.print()
     onImpreso()
   }
-
-  const esViacargo = empresa === "Viacargo"
 
   return (
     <Modal
@@ -180,6 +239,12 @@ export function EtiquetaDialog({
             }}
           />
         </div>
+
+        {error && (
+          <p role="alert" className="no-imprimir text-sm font-semibold text-destructive">
+            {error}
+          </p>
+        )}
 
         <div className="no-imprimir flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button type="button" variant="outline" onClick={onCerrar}>

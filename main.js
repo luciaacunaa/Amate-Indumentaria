@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 const OBLIGATORIOS = ['nombre', 'dni', 'telefono', 'calle', 'numero', 'localidad', 'provincia', 'codigoPostal'];
+const REMITENTE_OBLIGATORIOS = ['nombre', 'dni', 'cuit', 'direccion', 'codigoPostal', 'localidad', 'provincia', 'telefono', 'subCuenta', 'sucursal'];
 
 function validar(data) {
   for (const campo of OBLIGATORIOS) {
@@ -27,8 +28,12 @@ app.whenReady().then(() => {
   ipcMain.handle('clientas:eliminar', (_e, id) => db.eliminar(id));
 
   ipcMain.handle('remitente:obtener', () => db.getConfig('remitente', null));
-  ipcMain.handle('remitente:guardar', (_e, r) => db.setConfig('remitente', r));
-
+    ipcMain.handle('remitente:guardar', (_e, r) => {
+    for (const campo of REMITENTE_OBLIGATORIOS) {
+      if (!r[campo] || !String(r[campo]).trim()) throw new Error(`Falta ${campo}`);
+    }
+    db.setConfig('remitente', r);
+  });
   ipcMain.handle('pedido:obtener', () => db.getConfig('proximoPedido', 1));
   ipcMain.handle('pedido:consumir', () => {
     const actual = db.getConfig('proximoPedido', 1);

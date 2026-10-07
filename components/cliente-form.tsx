@@ -11,14 +11,32 @@ type ClienteFormProps = {
   onCancelar: () => void
 }
 
+const REQUERIDOS: { campo: keyof ClienteFormValues; label: string }[] = [
+  { campo: "nombre", label: "Nombre y apellido" },
+  { campo: "dni", label: "DNI" },
+  { campo: "telefono", label: "Teléfono / WhatsApp" },
+  { campo: "calle", label: "Calle" },
+  { campo: "numero", label: "Número" },
+  { campo: "localidad", label: "Localidad" },
+  { campo: "provincia", label: "Provincia" },
+  { campo: "codigoPostal", label: "Código postal" },
+]
+
 export function ClienteForm({ valorInicial, onGuardar, onCancelar }: ClienteFormProps) {
   const [valores, setValores] = useState<ClienteFormValues>(valorInicial ?? clienteVacio)
+  const [error, setError] = useState("")
 
   const actualizar = (campo: keyof ClienteFormValues) => (e: { target: { value: string } }) =>
     setValores((v) => ({ ...v, [campo]: e.target.value }))
 
   const enviar = (e: FormEvent) => {
     e.preventDefault()
+    const faltantes = REQUERIDOS.filter(({ campo }) => !String(valores[campo] ?? "").trim())
+    if (faltantes.length > 0) {
+      setError(`Falta completar: ${faltantes.map((f) => f.label).join(", ")}`)
+      return
+    }
+    setError("")
     onGuardar({
       ...valores,
       nombre: valores.nombre.trim(),
@@ -26,14 +44,13 @@ export function ClienteForm({ valorInicial, onGuardar, onCancelar }: ClienteForm
   }
 
   return (
-    <form onSubmit={enviar} className="flex flex-col gap-4">
+    <form onSubmit={enviar} noValidate className="flex flex-col gap-4">
       <Field
         label="Nombre y apellido"
         name="nombre"
         value={valores.nombre}
         onChange={actualizar("nombre")}
         placeholder="Ej: María González"
-        required
         autoFocus
       />
 
@@ -106,6 +123,12 @@ export function ClienteForm({ valorInicial, onGuardar, onCancelar }: ClienteForm
           placeholder="Ej: 1832"
         />
       </div>
+
+      {error && (
+        <p role="alert" className="text-sm font-semibold text-destructive">
+          {error}
+        </p>
+      )}
 
       <div className="mt-1 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" onClick={onCancelar}>
