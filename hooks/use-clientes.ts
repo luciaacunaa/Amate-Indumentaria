@@ -15,6 +15,7 @@ declare global {
       guardarRemitente: (r: Remitente) => Promise<void>
       obtenerPedido: () => Promise<number>
       consumirPedido: () => Promise<number>
+      buscarClientas: (texto: string) => Promise<Cliente[]>
     }
   }
 }

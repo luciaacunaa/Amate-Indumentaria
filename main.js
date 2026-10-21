@@ -14,6 +14,7 @@ app.whenReady().then(() => {
   const db = require('./db');
 
   ipcMain.handle('clientas:listar', () => db.listar());
+    ipcMain.handle('clientas:buscar', (_e, texto) => db.buscar(texto));
 
   ipcMain.handle('clientas:crear', (_e, data) => {
     validar(data);

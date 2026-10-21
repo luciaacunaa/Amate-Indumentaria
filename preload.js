@@ -9,4 +9,5 @@ contextBridge.exposeInMainWorld('api', {
   guardarRemitente: (r) => ipcRenderer.invoke('remitente:guardar', r),
   obtenerPedido: () => ipcRenderer.invoke('pedido:obtener'),
   consumirPedido: () => ipcRenderer.invoke('pedido:consumir'),
+    buscarClientas: (texto) => ipcRenderer.invoke('clientas:buscar', texto),
 });

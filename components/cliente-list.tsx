@@ -1,17 +1,37 @@
 "use client"
 
-import { MapPin, Phone, Pencil, Trash2, Printer, Users } from "lucide-react"
+import { MapPin, Phone, Pencil, Trash2, Printer, Users, SearchX } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Cliente } from "@/lib/types"
 
 type ClienteListProps = {
   clientes: Cliente[]
+  hayBusqueda?: boolean
   onGenerar: (cliente: Cliente) => void
   onEditar: (cliente: Cliente) => void
   onEliminar: (cliente: Cliente) => void
 }
 
-export function ClienteList({ clientes, onGenerar, onEditar, onEliminar }: ClienteListProps) {
+export function ClienteList({
+  clientes,
+  hayBusqueda = false,
+  onGenerar,
+  onEditar,
+  onEliminar,
+}: ClienteListProps) {
+  if (clientes.length === 0 && hayBusqueda) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/60 px-6 py-16 text-center">
+        <div className="flex size-14 items-center justify-center rounded-full bg-secondary text-primary">
+          <SearchX className="size-7" />
+        </div>
+        <p className="text-lg font-bold text-foreground">
+          No se encontró un cliente con esas características
+        </p>
+      </div>
+    )
+  }
+
   if (clientes.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-card/60 px-6 py-16 text-center">

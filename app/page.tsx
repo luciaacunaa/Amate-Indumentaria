@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Plus, Search, Store } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -26,20 +26,28 @@ export default function Page() {
   } = useClientes()
 
   const [busqueda, setBusqueda] = useState("")
+  const [resultados, setResultados] = useState<Cliente[]>([])
   const [formAbierto, setFormAbierto] = useState(false)
   const [enEdicion, setEnEdicion] = useState<Cliente | null>(null)
   const [remitenteAbierto, setRemitenteAbierto] = useState(false)
   const [clienteEtiqueta, setClienteEtiqueta] = useState<Cliente | null>(null)
 
-  const filtradas = useMemo(() => {
-    const q = busqueda.trim().toLowerCase()
-    if (!q) return clientes
-    return clientes.filter((c) =>
-      [c.nombre, c.dni, c.localidad, c.provincia, c.telefono]
-        .filter(Boolean)
-        .some((v) => v.toLowerCase().includes(q)),
-    )
-  }, [clientes, busqueda])
+  // Busca en SQLite mientras se escribe (y cuando cambia la lista de clientas)
+  useEffect(() => {
+    if (!cargado) return
+    let vigente = true
+    window.api.buscarClientas(busqueda).then((r) => {
+      if (vigente) setResultados(r)
+    })
+    return () => {
+      vigente = false
+    }
+  }, [busqueda, clientes, cargado])
+
+  // Botón "Buscar" (o Enter)
+  const buscar = async () => {
+    setResultados(await window.api.buscarClientas(busqueda))
+  }
 
   const abrirNueva = () => {
     setEnEdicion(null)
@@ -105,18 +113,33 @@ export default function Page() {
           </Button>
         </div>
 
-        <div className="relative mb-5">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre, DNI o localidad…"
-            className="h-11 w-full rounded-xl border border-input bg-card pl-10 pr-4 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/25"
-          />
-        </div>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            buscar()
+          }}
+          className="mb-5 flex gap-2"
+        >
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre, DNI o localidad…"
+              className="h-11 w-full rounded-xl border border-input bg-card pl-10 pr-4 text-sm text-foreground shadow-sm outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/25"
+            />
+          </div>
+          <Button
+            type="submit"
+            className="h-11 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            Buscar
+          </Button>
+        </form>
 
         <ClienteList
-          clientes={filtradas}
+          clientes={resultados}
+          hayBusqueda={busqueda.trim() !== ""}
           onGenerar={setClienteEtiqueta}
           onEditar={(c) => {
             setEnEdicion(c)

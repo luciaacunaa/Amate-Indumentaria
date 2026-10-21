@@ -5,6 +5,12 @@ const { app } = require('electron');
 
 const db = new Database(process.env.DB_PATH || path.join(app.getPath('userData'), 'amate.db'));
 
+// Para buscar sin distinguir mayúsculas ni tildes (Acuña = acuna)
+const sinTildes = (s) =>
+  String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+db.function('normalizar', { deterministic: true }, sinTildes);
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS clientas (
     id TEXT PRIMARY KEY,
@@ -42,6 +48,17 @@ module.exports = {
   listar: () => db.prepare(`${SELECT} ORDER BY creada_en DESC`).all(),
 
   obtener: (id) => db.prepare(`${SELECT} WHERE id = ?`).get(id),
+
+  buscar(texto) {
+    const q = `%${sinTildes(texto).trim()}%`;
+    return db.prepare(`
+      ${SELECT}
+      WHERE normalizar(nombre) LIKE @q OR normalizar(dni) LIKE @q
+         OR normalizar(localidad) LIKE @q OR normalizar(provincia) LIKE @q
+         OR normalizar(telefono) LIKE @q
+      ORDER BY creada_en DESC
+    `).all({ q });
+  },
 
   crear(c) {
     const id = crypto.randomUUID();
