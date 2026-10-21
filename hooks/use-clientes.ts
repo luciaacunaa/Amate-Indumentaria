@@ -8,6 +8,7 @@ declare global {
   interface Window {
     api: {
       listarClientas: () => Promise<Cliente[]>
+      buscarClientas: (texto: string) => Promise<Cliente[]>
       crearClienta: (d: ClienteFormValues) => Promise<Cliente>
       editarClienta: (id: string, d: ClienteFormValues) => Promise<void>
       eliminarClienta: (id: string) => Promise<void>
@@ -15,7 +16,8 @@ declare global {
       guardarRemitente: (r: Remitente) => Promise<void>
       obtenerPedido: () => Promise<number>
       consumirPedido: () => Promise<number>
-      buscarClientas: (texto: string) => Promise<Cliente[]>
+      imprimirEtiqueta: () => Promise<{ exito: boolean; motivo: string }>
+      guardarEtiquetaPdf: (nombre: string) => Promise<string | null>
     }
   }
 }

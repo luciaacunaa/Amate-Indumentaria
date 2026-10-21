@@ -79,6 +79,7 @@ export function EtiquetaDialog({
   const [expreso, setExpreso] = useState("")
   const [modalidad, setModalidad] = useState<ModalidadCorreo>(MODALIDADES_CORREO[1])
   const [error, setError] = useState("")
+  const [aviso, setAviso] = useState("")
 
   useEffect(() => {
     if (cliente) {
@@ -90,6 +91,7 @@ export function EtiquetaDialog({
       setExpreso("")
       setModalidad(MODALIDADES_CORREO[1])
       setError("")
+      setAviso("")
     }
   }, [cliente, sugerenciaPedido])
 
@@ -119,15 +121,26 @@ export function EtiquetaDialog({
     return faltan
   }
 
-  const imprimir = () => {
+  // "Imprimir etiqueta": valida los datos y guarda el PDF donde elija el usuario
+  const imprimir = async () => {
+    setAviso("")
     const faltan = datosFaltantes()
     if (faltan.length > 0) {
       setError(`No se puede generar la etiqueta. Falta completar: ${faltan.join(", ")}.`)
       return
     }
     setError("")
-    window.print()
-    onImpreso()
+
+    const nombre = `etiqueta-${c.nombre.trim().replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, "-")}-${nroPedido}`
+    try {
+      const ruta = await window.api.guardarEtiquetaPdf(nombre)
+      if (ruta) {
+        setAviso(`PDF guardado en: ${ruta}`)
+        onImpreso()
+      }
+    } catch (err) {
+      setError(`No se pudo guardar el PDF: ${(err as Error).message}`)
+    }
   }
 
   return (
@@ -135,7 +148,7 @@ export function EtiquetaDialog({
       open={!!cliente}
       onClose={onCerrar}
       title="Generar etiqueta"
-      description="Elegí la empresa y revisá los datos antes de imprimir."
+      description="Elegí la empresa y revisá los datos. Al imprimir, se guarda en PDF donde elijas."
       size="lg"
     >
       <div className="flex flex-col gap-5">
@@ -243,6 +256,12 @@ export function EtiquetaDialog({
         {error && (
           <p role="alert" className="no-imprimir text-sm font-semibold text-destructive">
             {error}
+          </p>
+        )}
+
+        {aviso && (
+          <p role="status" className="no-imprimir text-sm font-semibold text-primary">
+            {aviso}
           </p>
         )}
 
