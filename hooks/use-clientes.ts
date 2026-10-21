@@ -4,21 +4,18 @@ import { useCallback, useEffect, useState } from "react"
 import type { Cliente, ClienteFormValues, Remitente } from "@/lib/types"
 import { remitentePorDefecto } from "@/lib/types"
 
-const CLIENTES_KEY = "amate:clientes"
-const REMITENTE_KEY = "amate:remitente"
-const PEDIDO_KEY = "amate:proximo-pedido"
-
-function generarId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-function leer<T>(clave: string, porDefecto: T): T {
-  if (typeof window === "undefined") return porDefecto
-  try {
-    const crudo = window.localStorage.getItem(clave)
-    return crudo ? (JSON.parse(crudo) as T) : porDefecto
-  } catch {
-    return porDefecto
+declare global {
+  interface Window {
+    api: {
+      listarClientas: () => Promise<Cliente[]>
+      crearClienta: (d: ClienteFormValues) => Promise<Cliente>
+      editarClienta: (id: string, d: ClienteFormValues) => Promise<void>
+      eliminarClienta: (id: string) => Promise<void>
+      obtenerRemitente: () => Promise<Remitente | null>
+      guardarRemitente: (r: Remitente) => Promise<void>
+      obtenerPedido: () => Promise<number>
+      consumirPedido: () => Promise<number>
+    }
   }
 }
 
@@ -28,53 +25,67 @@ export function useClientes() {
   const [proximoPedido, setProximoPedido] = useState<number>(1)
   const [cargado, setCargado] = useState(false)
 
-  useEffect(() => {
-    setClientes(leer<Cliente[]>(CLIENTES_KEY, []))
-    setRemitenteState(leer<Remitente>(REMITENTE_KEY, remitentePorDefecto))
-    setProximoPedido(leer<number>(PEDIDO_KEY, 1))
-    setCargado(true)
+  const recargar = useCallback(async () => {
+    setClientes(await window.api.listarClientas())
   }, [])
 
-  const persistirClientes = useCallback((siguiente: Cliente[]) => {
-    setClientes(siguiente)
-    window.localStorage.setItem(CLIENTES_KEY, JSON.stringify(siguiente))
+  useEffect(() => {
+    async function iniciar() {
+      const [lista, rem, pedido] = await Promise.all([
+        window.api.listarClientas(),
+        window.api.obtenerRemitente(),
+        window.api.obtenerPedido(),
+      ])
+      setClientes(lista)
+      setRemitenteState({ ...remitentePorDefecto, ...(rem ?? {}) })
+      setProximoPedido(pedido)
+      setCargado(true)
+    }
+    iniciar()
   }, [])
 
   const agregarCliente = useCallback(
-    (valores: ClienteFormValues) => {
-      const nuevo: Cliente = { ...valores, id: generarId(), creadaEn: Date.now() }
-      persistirClientes([nuevo, ...clientes])
-      return nuevo
+    async (valores: ClienteFormValues) => {
+      try {
+        await window.api.crearClienta(valores)
+        await recargar()
+      } catch (err) {
+        window.alert((err as Error).message)
+      }
     },
-    [clientes, persistirClientes],
+    [recargar],
   )
 
   const editarCliente = useCallback(
-    (id: string, valores: ClienteFormValues) => {
-      persistirClientes(clientes.map((c) => (c.id === id ? { ...c, ...valores } : c)))
+    async (id: string, valores: ClienteFormValues) => {
+      try {
+        await window.api.editarClienta(id, valores)
+        await recargar()
+      } catch (err) {
+        window.alert((err as Error).message)
+      }
     },
-    [clientes, persistirClientes],
+    [recargar],
   )
 
   const eliminarCliente = useCallback(
-    (id: string) => {
-      persistirClientes(clientes.filter((c) => c.id !== id))
+    async (id: string) => {
+      await window.api.eliminarClienta(id)
+      await recargar()
     },
-    [clientes, persistirClientes],
+    [recargar],
   )
 
-  const guardarRemitente = useCallback((valores: Remitente) => {
+  const guardarRemitente = useCallback(async (valores: Remitente) => {
+    await window.api.guardarRemitente(valores)
     setRemitenteState(valores)
-    window.localStorage.setItem(REMITENTE_KEY, JSON.stringify(valores))
   }, [])
 
-  const consumirNroPedido = useCallback(() => {
-    const actual = proximoPedido
-    const siguiente = actual + 1
-    setProximoPedido(siguiente)
-    window.localStorage.setItem(PEDIDO_KEY, JSON.stringify(siguiente))
-    return actual
-  }, [proximoPedido])
+  const consumirNroPedido = useCallback(async () => {
+    const usado = await window.api.consumirPedido()
+    setProximoPedido(usado + 1)
+    return usado
+  }, [])
 
   return {
     clientes,
