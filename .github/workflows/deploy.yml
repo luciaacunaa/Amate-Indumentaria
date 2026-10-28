@@ -1,0 +1,23 @@
+name: Pipeline de Despliegue (CD)
+
+# Se ejecuta automáticamente al hacer push a la rama "main"
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Desplegar en Máquina Virtual
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Conectar por SSH y ejecutar script
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          password: ${{ secrets.VM_PASSWORD }}
+          # Llama al script integrado que creamos en el paso 1
+          script: |
+            /home/lupucipi/Amate-Indumentaria/deploy.sh
