@@ -4,7 +4,8 @@ name: Pipeline de Despliegue (CD)
 on:
   push:
     branches:
-      - main
+      - master
+      
 
 jobs:
   deploy:
