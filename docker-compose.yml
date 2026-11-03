@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: amate_app
+    restart: always
+    ports:
+      - "3000:3000" # Criterio: Puertos
+    environment:    # Criterio: Variables de entorno
+      - PORT=3000
+      - NODE_ENV=production
+    volumes:        # Criterio: Persistencia de datos (¡CRÍTICO para SQLite!)
+      # Esto enlaza la carpeta 'data' de tu proyecto al disco de la máquina virtual.
+      # Si el contenedor se destruye, tu archivo .db sobrevive.
+      - sqlite_data:/app/data
+
+volumes:
+  # Declaramos el volumen persistente
+  sqlite_data:
