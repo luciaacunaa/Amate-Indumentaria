@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: luciaacunaa/amate-indumentaria:latest
     container_name: amate_app
     restart: always
     ports:

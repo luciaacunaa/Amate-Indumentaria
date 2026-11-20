@@ -1,24 +1,35 @@
-name: Pipeline de Despliegue (CD)
+name: CD - Despliegue automático en VM
 
-# Se ejecuta automáticamente al hacer push a la rama "main"
 on:
-  push:
+  workflow_run:
+    workflows: ["CI - Build, Test y Push a Docker Hub"]
+    types:
+      - completed
     branches:
       - master
-      
 
 jobs:
   deploy:
-    name: Desplegar en Máquina Virtual
-    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
 
     steps:
-      - name: Conectar por SSH y ejecutar script
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Descargar código del repositorio
+        uses: actions/checkout@v4
+
+      - name: Iniciar sesión en Docker Hub
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          password: ${{ secrets.VM_PASSWORD }}
-          # Llama al script integrado que creamos en el paso 1
-          script: |
-            /home/lupucipi/Amate-Indumentaria/deploy.sh
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Descargar última imagen y reiniciar servicio
+        run: |
+          docker rm -f amate_app || true
+          docker compose pull app
+          docker compose up -d app
+
+      - name: Verificar estado del contenedor
+        run: |
+          sleep 3
+          docker ps --filter "name=amate_app"
