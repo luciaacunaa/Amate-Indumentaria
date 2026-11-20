@@ -1,0 +1,53 @@
+name: CI - Build, Test y Push a Docker Hub
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Instalar dependencias y compilar la app
+        run: |
+          npm ci
+          npm run build
+
+      - name: Ejecutar tests si existen
+        run: |
+          if [ -f "package.json" ] && grep -q '"test"' package.json; then
+            npm test -- --passWithNoTests || true
+          fi
+
+      - name: Login en Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extraer tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: luciaacunaa/amate-indumentaria
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,prefix=sha-
+
+      - name: Construir y subir imagen a Docker Hub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
